@@ -154,6 +154,7 @@ class Loops::Engine
             if Loops.logger.is_a?(Loops::Logger) && @global_config['workers_engine'] == 'fork'
               # this is happening right after the fork, therefore no need for teardown at the end of the proc
               Loops.logger.logfile = config['logger'] if config['logger']
+              Loops.logger.write_to_console = false
               Loops.logger
             else
               # for backwards compatibility and handling threading engine
