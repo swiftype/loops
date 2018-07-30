@@ -35,6 +35,16 @@ class Loops::Logger < ::Delegator
     @number_of_files, @level, @max_file_size, @write_to_console =
         number_of_files, level, max_file_size, write_to_console
     self.logfile = logfile
+    self.formatter = proc do |severity, time, progname, message|
+      [
+        severity[0..0],
+        time.strftime('%Y-%m-%d %H:%M:%S'),
+        Process.pid,
+        @implementation.prefix,
+        progname,
+        message
+      ].compact.join(' : ') + "\n"
+    end
     super(@implementation)
   end
 
@@ -80,6 +90,7 @@ class Loops::Logger < ::Delegator
     # Create a logger implementation.
     @implementation = LoggerImplementation.new(coerced_logfile, @number_of_files, @max_file_size, @write_to_console, @colorful_logs)
     @implementation.level = @level
+    @implementation.formatter = @formatter
     logfile
   end
 
@@ -94,6 +105,12 @@ class Loops::Logger < ::Delegator
     @level = level
     @implementation.level = @level if @implementation
     level
+  end
+
+  def formatter=(formatter)
+    @formatter = formatter
+    @implementation.formatter = @formatter if @implementation
+    formatter
   end
 
   # Sets a value indicating whether to dump all logs to the console.
@@ -151,25 +168,8 @@ class Loops::Logger < ::Delegator
 
     attr_accessor :write_to_console, :colorful_logs
 
-    class Formatter
-
-      def initialize(logger)
-        @logger = logger
-      end
-
-      def call(severity, time, progname, message)
-        log_message = [ severity[0..0], time.strftime('%Y-%m-%d %H:%M:%S'), Process.pid ]
-        log_message << @logger.prefix
-        log_message << progname
-        log_message << message
-
-        return log_message.compact.join(' : ') + "\n"
-      end
-    end
-
     def initialize(log_device, number_of_files = 10, max_file_size = 10 * 1024 * 1024, write_to_console = true, colorful_logs = false)
       super(log_device, number_of_files, max_file_size)
-      self.formatter    = Formatter.new(self)
       @write_to_console = write_to_console
       @colorful_logs    = colorful_logs
       @prefix           = nil
