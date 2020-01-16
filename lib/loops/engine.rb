@@ -179,7 +179,7 @@ class Loops::Engine
         the_loop = klass.new(worker, name, config)
 
         debug "Starting the loop #{name}!"
-        fix_ar_after_fork
+        fix_db_connections_after_fork
         # reseed the random number generator in case Loops calls
         # srand or rand prior to forking
         srand
@@ -229,7 +229,12 @@ class Loops::Engine
       trap('EXIT', stop)
     end
 
-    def fix_ar_after_fork
+    def fix_db_connections_after_fork
+      disconnect_active_record
+      disconnect_mongoid
+    end
+
+    def disconnect_active_record
       if Object.const_defined?('ActiveRecord')
         if ActiveRecord::VERSION::MAJOR < 3
           ActiveRecord::Base.allow_concurrency = true
@@ -244,5 +249,9 @@ class Loops::Engine
           ActiveRecord::Base.verify_active_connections!
         end
       end
+    end
+
+    def disconnect_mongoid
+      ::Mongoid::Clients.disconnect if defined?(::Mongoid::Clients)
     end
 end
