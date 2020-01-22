@@ -251,7 +251,13 @@ class Loops::Engine
       end
     end
 
+    # https://docs.mongodb.com/mongoid/7.0/tutorials/mongoid-configuration/#usage-with-forking-servers
     def disconnect_mongoid
-      ::Mongoid::Clients.disconnect if defined?(::Mongoid::Clients)
+      if defined?(::Mongoid::Clients)
+        ::Mongoid::Clients.clients.each do |_name, client|
+          client.close
+          client.reconnect
+        end
+      end
     end
 end
